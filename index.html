@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Employee Awards Search">
-  <title>Personnel Awards Registry</title>
+  <title>BJMP Caraga Awards Registry</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,20 +14,24 @@
   <header class="hero">
     <div class="hero-inner">
       <div class="brand">
-        <div class="brand-mark">★</div>
+        <div class="brand-logos">
+          <img src="assets/BJMP.png" alt="BJMP Logo" class="agency-logo">
+          <img src="assets/CARAGA.png" alt="BJMP Caraga Logo" class="agency-logo">
+        </div>
+
         <div>
-          <div class="eyebrow"></div>
-          <h1>BJMP CARAGA AWARDS DATABASE</h1>
+          <div class="eyebrow">BJMP CARAGA</div>
+          <h1>REWARDS AND RECOGNITION DATABASE</h1>
         </div>
       </div>
-      <p class="hero-copy">Search you name to view your complete record of awards and recognitions.</p>
+      <p class="hero-copy">Search your name to view your complete record of awards and recognitions.</p>
 
       <div class="search-wrap">
         <label for="employeeSearch" class="sr-only">Search your name</label>
         <div class="search-box">
           <span class="search-icon">⌕</span>
           <input id="employeeSearch" type="search" autocomplete="off"
-                 placeholder="Search employee name..." aria-autocomplete="list"
+                 placeholder="Search name..." aria-autocomplete="list"
                  aria-controls="suggestions">
           <button id="clearBtn" class="clear-btn" type="button" aria-label="Clear search">×</button>
         </div>
@@ -42,14 +46,14 @@
     <section id="emptyState" class="panel empty-state">
       <div class="empty-icon">🏅</div>
       <h2>Find your awards</h2>
-      <p>Start typing a name above. Suggestions include the personnels's rank.</p>
+      <p>Start typing a name above. Suggestions include the personnel's rank.</p>
     </section>
 
     <section id="results" hidden>
       <div class="profile panel">
-        <div class="profile-badge" id="profileInitials">—</div>
+        <div class="profile-badge" id="profileInitials"></div>
         <div class="profile-main">
-          <div class="label">EMPLOYEE</div>
+
           <h2 id="employeeName">—</h2>
           <div class="rank-pill" id="employeeRank">—</div>
         </div>
@@ -78,7 +82,7 @@
   </main>
 
   <footer>
-    <span>Employee Awards Registry</span>
+    <span>BJMP Caraga. All rights reserved.</span>
     <span>Data source: authorized Google Sheets database</span>
   </footer>
 

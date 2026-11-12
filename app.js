@@ -121,16 +121,16 @@ function renderSuggestions(matches) {
     button.type = "button";
     button.className = "suggestion";
     button.innerHTML = `
-      <div class="suggestion-avatar">${escapeHtml(initials(employee.name))}</div>
       <div>
-        <div class="suggestion-name">${escapeHtml(employee.name)}</div>
-        <div class="suggestion-rank">${escapeHtml(employee.rank || "Rank not recorded")}</div>
+        <div class="suggestion-name">${escapeHtml(employee.rank || "Rank not recorded")} ${escapeHtml(employee.name)}</div>
       </div>`;
     button.addEventListener("click", () => selectEmployee(employee.name));
     suggestions.appendChild(button);
   });
   suggestions.hidden = false;
 }
+
+
 
 function selectEmployee(name) {
   searchInput.value = name;
@@ -189,10 +189,8 @@ function awardCard(group, index) {
   const records = [...group.records].sort((a,b) => b.dateConferred.localeCompare(a.dateConferred));
   const details = records.map((r, i) => `
     <div class="detail-row">
-      <div class="detail-label">Award #${i + 1}</div>
       <div class="detail-value">
         ${detail("Date Conferred", r.dateConferred)}
-        ${detail("Award Type", r.awardType)}
         ${r.soGo ? `<div style="margin-top:5px">GO/SO: ${r.soGoUrl
           ? `<a class="so-link" href="${escapeAttr(r.soGoUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.soGo)}</a>`
           : escapeHtml(r.soGo)}</div>` : ""}
@@ -208,7 +206,6 @@ function awardCard(group, index) {
         <div class="award-count">${group.records.length}</div>
         <div class="award-title">
           <div class="award-name">${escapeHtml(group.name)}</div>
-          <div class="award-type">${escapeHtml(group.type || "Award")}</div>
         </div>
         <div class="chevron">⌄</div>
       </button>
@@ -256,8 +253,18 @@ function showError(message) {
   $("errorText").textContent = message;
 }
 
+// function initials(name) {
+//   return name.split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join("").toUpperCase() || "—";
+// }
+
 function initials(name) {
-  return name.split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join("").toUpperCase() || "—";
+  const words = name.split(/\s+/).filter(Boolean);
+
+  if (words.length >= 2) {
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  }
+
+  return words.length === 1 ? words[0][0].toUpperCase() : "—";
 }
 
 function escapeHtml(value) {
