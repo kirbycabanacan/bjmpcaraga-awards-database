@@ -1,1 +1,289 @@
-TEST
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Awards Registry</title>
+  <style>
+    :root{
+      --navy:#082b59; --blue:#0b5cab; --gold:#d6a600; --bg:#f4f7fb;
+      --text:#172033; --muted:#667085; --white:#fff; --border:#d9e1ec;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .hero{background:linear-gradient(135deg,var(--navy),#0c4d8d);color:white;padding:42px 20px 58px}
+    .wrap{max-width:1000px;margin:auto}
+    .brand{font-size:14px;letter-spacing:.12em;text-transform:uppercase;opacity:.85;font-weight:700}
+    h1{margin:8px 0 8px;font-size:34px}
+    .subtitle{margin:0;opacity:.88}
+    .search-card{background:white;margin:-28px auto 28px;padding:20px;border-radius:16px;box-shadow:0 12px 35px #082b5920;position:relative}
+    .searchbox{position:relative}
+    input{width:100%;padding:16px 18px;border:1px solid var(--border);border-radius:12px;font-size:17px;outline:none}
+    input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0b5cab18}
+    .suggestions{position:absolute;left:0;right:0;top:58px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;z-index:20;box-shadow:0 10px 25px #00000018;display:none}
+    .suggestion{padding:13px 16px;cursor:pointer;border-bottom:1px solid #eef2f7}
+    .suggestion:last-child{border-bottom:0}.suggestion:hover{background:#f5f8fc}
+    .name{font-weight:700}.rank{font-size:13px;color:var(--blue);margin-top:3px}
+    .status{font-size:14px;color:var(--muted);margin-top:12px}
+    .profile{display:none;background:white;border-radius:16px;padding:24px;box-shadow:0 6px 20px #082b5910}
+    .profile-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap}
+    .profile h2{margin:0 0 5px;font-size:27px}.profile-rank{color:var(--blue);font-weight:700}
+    .total{background:#edf5ff;border-radius:12px;padding:14px 20px;text-align:center;min-width:130px}
+    .total strong{display:block;font-size:28px;color:var(--navy)}
+    .total span{font-size:12px;color:var(--muted)}
+    .award{border:1px solid var(--border);border-radius:12px;margin-top:14px;overflow:hidden}
+    .award-summary{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px 17px;cursor:pointer}
+    .award-title{font-weight:700}.count{background:#eef4fb;color:var(--navy);font-weight:800;padding:5px 10px;border-radius:999px}
+    .award-list{display:none;border-top:1px solid var(--border);padding:8px 17px 14px;background:#fafcff}
+    .award-row{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px dashed #dce4ee;font-size:14px}
+    .award-row:last-child{border-bottom:0}
+    a{color:var(--blue);font-weight:700;text-decoration:none}.award-row a:hover{text-decoration:underline}
+    .empty{text-align:center;padding:45px 20px;color:var(--muted)}
+    .loading{display:none;color:var(--muted);margin-top:12px}
+    footer{text-align:center;color:#7b8797;font-size:12px;padding:30px}
+    @media(max-width:600px){h1{font-size:27px}.search-card{margin-left:12px;margin-right:12px}.profile{margin:0 12px}.award-row{display:block}.award-row a{display:inline-block;margin-top:5px}}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <div class="brand">Employee Recognition Registry</div>
+      <h1>Search Your Awards</h1>
+      <p class="subtitle">Enter your name to view all awards recorded in the database.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="search-card">
+      <div class="searchbox">
+        <input id="search" type="text" autocomplete="off" placeholder="Search employee name..." aria-label="Search employee name">
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+      <div id="loading" class="loading">Loading employee records…</div>
+      <div id="status" class="status">Start typing to search.</div>
+    </section>
+
+    <section id="profile" class="profile"></section>
+  </main>
+
+  <footer>Employee Awards Registry</footer>
+
+<script>
+/*
+  CONFIGURATION
+  The supplied Google Sheet must be accessible to the public.
+  If your data is on another tab, change SHEET_GID to that tab's gid.
+*/
+const SHEET_ID = "1bJ6TCJjhKCGPpTggZaoDGC4ydng2rWh0AACf4Bt0O5g";
+const SHEET_GID = "0"; // Change to the actual tab gid if needed.
+
+/*
+  The code auto-detects common header names. Your sheet can use names such as:
+  Rank: Rank / RANK
+  Employee name: Name / Employee Name / Full Name
+  Award: Award / Award Received / Recognition
+  GO/SO: GO/SO / GO SO / General Order / Special Order
+  Date: Date / Award Date / Date Received
+*/
+let records = [];
+let people = [];
+
+const search = document.getElementById("search");
+const suggestions = document.getElementById("suggestions");
+const profile = document.getElementById("profile");
+const statusEl = document.getElementById("status");
+const loading = document.getElementById("loading");
+
+function norm(s){
+  return String(s ?? "").trim().toLowerCase().replace(/\s+/g," ");
+}
+
+function cleanHeader(s){
+  return norm(s).replace(/[^a-z0-9]/g,"");
+}
+
+function findKey(obj, candidates){
+  const keys = Object.keys(obj);
+  for(const c of candidates){
+    const exact = keys.find(k => cleanHeader(k) === cleanHeader(c));
+    if(exact) return exact;
+  }
+  return null;
+}
+
+/* Google Visualization HTML output preserves hyperlinks in cells. */
+async function loadSheet(){
+  loading.style.display = "block";
+  statusEl.textContent = "";
+  const url =
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${encodeURIComponent(SHEET_GID)}&tqx=out:html`;
+
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("Unable to access the Google Sheet.");
+  const html = await res.text();
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const table = doc.querySelector("table");
+  if(!table) throw new Error("No data table was returned. Check the Sheet sharing/publication settings.");
+
+  const rows = [...table.querySelectorAll("tr")].map(tr =>
+    [...tr.querySelectorAll("th,td")].map(td => ({
+      text: td.textContent.trim(),
+      html: td.innerHTML.trim(),
+      link: td.querySelector("a")?.href || ""
+    }))
+  ).filter(r => r.length);
+
+  if(rows.length < 2) throw new Error("The sheet appears to contain no employee records.");
+
+  const headers = rows[0].map(x => x.text);
+  records = rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => {
+      const cell = row[i] || {text:"",html:"",link:""};
+      obj[h] = {text:cell.text, link:cell.link};
+    });
+    return obj;
+  });
+
+  const nameKey = findKey(records[0], [
+    "Name","Employee Name","Full Name","Employee","Personnel Name","Jail Officer Name"
+  ]);
+  const rankKey = findKey(records[0], ["Rank","Employee Rank"]);
+  if(!nameKey) throw new Error("Could not find a name column. Rename your name column to 'Name' or update the code.");
+
+  people = [];
+  const seen = new Set();
+
+  for(const r of records){
+    const name = r[nameKey]?.text || "";
+    if(!name) continue;
+    const key = norm(name);
+    if(seen.has(key)) continue;
+    seen.add(key);
+    people.push({name, rank: rankKey ? (r[rankKey]?.text || "") : ""});
+  }
+
+  people.sort((a,b)=>a.name.localeCompare(b.name));
+  loading.style.display = "none";
+  statusEl.textContent = `${people.length} employee names available.`;
+}
+
+function showSuggestions(query){
+  suggestions.innerHTML = "";
+  const q = norm(query);
+  if(!q){ suggestions.style.display="none"; return; }
+
+  const matches = people.filter(p => norm(p.name).includes(q)).slice(0,10);
+  if(!matches.length){ suggestions.style.display="none"; return; }
+
+  matches.forEach(p=>{
+    const el = document.createElement("div");
+    el.className = "suggestion";
+    el.innerHTML = `<div class="name">${escapeHtml(p.name)}</div>
+                    ${p.rank ? `<div class="rank">${escapeHtml(p.rank)}</div>` : ""}`;
+    el.addEventListener("click", ()=>selectPerson(p));
+    suggestions.appendChild(el);
+  });
+  suggestions.style.display="block";
+}
+
+function selectPerson(person){
+  search.value = person.name;
+  suggestions.style.display="none";
+  renderProfile(person.name);
+}
+
+function renderProfile(name){
+  const nameKey = findKey(records[0], [
+    "Name","Employee Name","Full Name","Employee","Personnel Name","Jail Officer Name"
+  ]);
+  const rankKey = findKey(records[0], ["Rank","Employee Rank"]);
+  const awardKey = findKey(records[0], [
+    "Award","Award Received","Awards","Recognition","Award Title"
+  ]);
+  const goKey = findKey(records[0], [
+    "GO/SO","GO SO","GO or SO","General Order","Special Order","GO","SO"
+  ]);
+  const dateKey = findKey(records[0], [
+    "Date","Award Date","Date Received","Date of Award","Year"
+  ]);
+
+  if(!awardKey){
+    profile.innerHTML = `<div class="empty">The Award column could not be detected. Rename it to <b>Award</b> or update the award column list in the code.</div>`;
+    profile.style.display="block"; return;
+  }
+
+  const rows = records.filter(r => norm(r[nameKey]?.text) === norm(name));
+  const rank = rankKey ? (rows[0]?.[rankKey]?.text || "") : "";
+
+  const groups = new Map();
+  rows.forEach(r=>{
+    const award = r[awardKey]?.text || "Unspecified Award";
+    if(!groups.has(award)) groups.set(award, []);
+    groups.get(award).push({
+      date: dateKey ? (r[dateKey]?.text || "") : "",
+      go: goKey ? (r[goKey]?.text || "") : "",
+      goLink: goKey ? (r[goKey]?.link || "") : ""
+    });
+  });
+
+  const sorted = [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  const total = rows.length;
+
+  let awardHtml = sorted.map(([award, list], idx)=>{
+    const id = `award-${idx}`;
+    const items = list.map(x=>{
+      let goHtml = x.go || "—";
+      if(x.goLink) goHtml = `<a href="${escapeAttr(x.goLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(x.go || "View GO/SO")}</a>`;
+      return `<div class="award-row"><span>${escapeHtml(x.date || "Date not recorded")}</span><span>${goHtml}</span></div>`;
+    }).join("");
+
+    return `<div class="award">
+      <div class="award-summary" onclick="toggleAward('${id}')">
+        <div class="award-title">${escapeHtml(award)}</div>
+        <span class="count">${list.length} ${list.length===1?"time":"times"}</span>
+      </div>
+      <div id="${id}" class="award-list">${items}</div>
+    </div>`;
+  }).join("");
+
+  profile.innerHTML = `
+    <div class="profile-head">
+      <div><h2>${escapeHtml(name)}</h2>${rank ? `<div class="profile-rank">${escapeHtml(rank)}</div>` : ""}</div>
+      <div class="total"><strong>${total}</strong><span>Total Awards Received</span></div>
+    </div>
+    <div style="margin-top:24px"><b>Award Summary</b></div>
+    ${awardHtml || `<div class="empty">No awards found.</div>`}
+  `;
+  profile.style.display="block";
+}
+
+function toggleAward(id){
+  const el=document.getElementById(id);
+  el.style.display = el.style.display==="block" ? "none" : "block";
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+search.addEventListener("input", e=>showSuggestions(e.target.value));
+search.addEventListener("keydown", e=>{
+  if(e.key==="Enter"){
+    const first = suggestions.querySelector(".suggestion");
+    if(first) first.click();
+  }
+});
+document.addEventListener("click", e=>{
+  if(!e.target.closest(".searchbox")) suggestions.style.display="none";
+});
+
+loadSheet().catch(err=>{
+  loading.style.display="none";
+  statusEl.innerHTML = `<span style="color:#b42318">${escapeHtml(err.message)}</span>`;
+});
+</script>
+</body>
+</html>
