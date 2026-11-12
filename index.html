@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Employee Awards Search">
+  <title>Employee Awards Registry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand">
+        <div class="brand-mark">★</div>
+        <div>
+          <div class="eyebrow">EMPLOYEE RECOGNITION</div>
+          <h1>Awards Registry</h1>
+        </div>
+      </div>
+      <p class="hero-copy">Search an employee to view their complete record of awards and recognitions.</p>
+
+      <div class="search-wrap">
+        <label for="employeeSearch" class="sr-only">Search employee name</label>
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input id="employeeSearch" type="search" autocomplete="off"
+                 placeholder="Search employee name..." aria-autocomplete="list"
+                 aria-controls="suggestions">
+          <button id="clearBtn" class="clear-btn" type="button" aria-label="Clear search">×</button>
+        </div>
+        <div id="suggestions" class="suggestions" role="listbox" hidden></div>
+      </div>
+
+      <div id="status" class="status">Loading awards database…</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="emptyState" class="panel empty-state">
+      <div class="empty-icon">🏅</div>
+      <h2>Find an employee's awards</h2>
+      <p>Start typing a name above. Suggestions include the employee's rank.</p>
+    </section>
+
+    <section id="results" hidden>
+      <div class="profile panel">
+        <div class="profile-badge" id="profileInitials">—</div>
+        <div class="profile-main">
+          <div class="label">EMPLOYEE</div>
+          <h2 id="employeeName">—</h2>
+          <div class="rank-pill" id="employeeRank">—</div>
+        </div>
+        <div class="total-stat">
+          <span id="totalAwards">0</span>
+          <small>Total awards</small>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div>
+          <div class="label">RECOGNITION HISTORY</div>
+          <h2>Awards received</h2>
+        </div>
+        <div id="uniqueAwards" class="muted"></div>
+      </div>
+
+      <div id="awardSummary" class="award-list"></div>
+    </section>
+
+    <section id="errorState" class="panel error-state" hidden>
+      <h2>Unable to load the database</h2>
+      <p id="errorText"></p>
+      <button id="retryBtn" class="primary-btn" type="button">Try again</button>
+    </section>
+  </main>
+
+  <footer>
+    <span>Employee Awards Registry</span>
+    <span>Data source: authorized Google Sheets database</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
