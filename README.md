@@ -1,1 +1,0 @@
-# bjmpcaraga-awards-database
