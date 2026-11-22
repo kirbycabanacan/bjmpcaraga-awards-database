@@ -49,139 +49,59 @@ document.addEventListener("DOMContentLoaded", () => {
 // LOAD GOOGLE SHEETS DATABASE
 // ==========================================
 
-function loadDatabase() {
 
+async function loadDatabase() {
   $("status").textContent = "Loading awards database…";
   $("errorState").hidden = true;
 
-  employees = [];
+  try {
+    const response = await fetch("/api/awards", {
+      method: "GET",
+      cache: "no-store"
+    });
 
-  const callbackName =
-    "__awardsGviz_" +
-    Date.now() +
-    "_" +
-    Math.random().toString(36).slice(2);
-
-  const script = document.createElement("script");
-
-  let finished = false;
-
-  const timeout = setTimeout(() => {
-    finishWithError(
-      "Connection timed out. Please check your internet connection and Google Sheets publishing settings."
-    );
-  }, CONFIG.REQUEST_TIMEOUT);
-
-  function cleanup() {
-    clearTimeout(timeout);
-    delete window[callbackName];
-    script.remove();
-  }
-
-  function finishWithError(message) {
-    if (finished) return;
-
-    finished = true;
-    cleanup();
-
-    console.error("Database connection error:", message);
-
-    showError(message);
-  }
-
-  window[callbackName] = (payload) => {
-
-    if (finished) return;
-
-    finished = true;
-    cleanup();
-
-    try {
-
-      if (!payload || payload.status !== "ok") {
-
-        const apiError =
-          payload?.errors?.[0]?.detailed_message ||
-          payload?.errors?.[0]?.message ||
-          "Google Sheets returned an invalid response.";
-
-        throw new Error(apiError);
-      }
-
-      if (!payload.table || !payload.table.cols) {
-        throw new Error("Invalid spreadsheet response.");
-      }
-
-      const table = payload.table;
-
-      // Extract headers.
-      const headers = table.cols.map(col =>
-        col.label || col.id || ""
+    if (!response.ok) {
+      throw new Error(
+        `Database server returned error: ${response.status}`
       );
-
-      console.log("Google Sheets headers:", headers);
-
-      // Extract records.
-      const rows = table.rows.map(row =>
-        (row.c || []).map(cell => {
-
-          if (!cell) return "";
-
-          // Prefer formatted value.
-          return cell.f != null
-            ? cell.f
-            : cell.v != null
-              ? cell.v
-              : "";
-
-        })
-      );
-
-      // Normalize spreadsheet records.
-      employees = normalizeRows([headers, ...rows]);
-
-      console.log("Award records loaded:", employees.length);
-
-      if (employees.length === 0) {
-
-        $("status").textContent =
-          "Database loaded, but no award records were found.";
-
-        $("emptyState").hidden = false;
-
-        return;
-      }
-
-      $("status").textContent =
-        `${employees.length.toLocaleString()} award records loaded`;
-
-      $("errorState").hidden = true;
-
-      console.log("First employee record:", employees[0]);
-
-    } catch (err) {
-
-      console.error("Database processing error:", err);
-
-      showError(err.message);
     }
-  };
 
-  script.onerror = () => {
-    finishWithError(
-      "Unable to access Google Sheets. Verify that your spreadsheet is published and publicly accessible."
+    const csv = await response.text();
+
+    if (!csv.trim()) {
+      throw new Error("The Google Sheets database is empty.");
+    }
+
+    const rows = parseCSV(csv);
+
+    if (rows.length < 2) {
+      throw new Error("No award records were found.");
+    }
+
+    employees = normalizeRows(rows);
+
+    $("status").textContent =
+      `${employees.length.toLocaleString()} award records loaded`;
+
+    console.log("Database loaded successfully.");
+    console.log("Total records:", employees.length);
+    console.log("First record:", employees[0]);
+
+    if (employees.length === 0) {
+      $("status").textContent =
+        "Database loaded, but no award records were found.";
+    }
+
+  } catch (err) {
+    console.error("Database loading error:", err);
+
+    showError(
+      "Could not load the Google Sheets database. " +
+      err.message
     );
-  };
-
-  const params = new URLSearchParams({
-    gid: CONFIG.GID,
-    tqx: `out:json;responseHandler:${callbackName}`
-  });
-
-  script.src = `${CONFIG.SHEET_URL}?${params.toString()}`;
-
-  document.body.appendChild(script);
+  }
 }
+
 
 // ==========================================
 // NORMALIZE GOOGLE SHEETS DATA
