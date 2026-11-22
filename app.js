@@ -371,7 +371,7 @@ function renderSuggestions(matches) {
       <div class="suggestion">
         <div>
           <div class="suggestion-name">
-            No employee found
+            No personnel found
           </div>
           <div class="suggestion-rank">
             Try another spelling
