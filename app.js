@@ -173,111 +173,92 @@ function parseCSV(csv) {
 // NORMALIZE GOOGLE SHEETS DATA
 // ==========================================
 
+
 function normalizeRows(rows) {
 
-  if (!rows || rows.length < 2) {
-    return [];
-  }
+  if (!rows || rows.length < 2) return [];
 
   const headers = rows[0].map(normalizeHeader);
 
-  // Exact mapping of your A-J columns.
   const columnAliases = {
-
     rank: ["rank"],
-
     name: ["name"],
-
     specificAward: ["specificaward"],
-
     awardType: ["awardtype"],
-
     dateConferred: ["dateconfered", "dateconferred"],
-
     soGo: ["sogo"],
-
     soGoUrl: ["link"],
-
     givenBy: ["givenby"],
-
     certificate: ["certicate", "certificate"],
-
     awardStanding: ["awardstanding"]
-
   };
 
   const columnIndex = {};
 
   for (const [field, aliases] of Object.entries(columnAliases)) {
-
     columnIndex[field] = headers.findIndex(header =>
       aliases.includes(header)
     );
-
   }
 
-  console.log("Column mapping:", columnIndex);
+  // Fallback to your known spreadsheet column positions.
+  // A=0, B=1, C=2 ... J=9
+  const fallbackIndexes = {
+    rank: 0,
+    name: 1,
+    specificAward: 2,
+    awardType: 3,
+    dateConferred: 4,
+    soGo: 5,
+    soGoUrl: 6,
+    givenBy: 7,
+    certificate: 8,
+    awardStanding: 9
+  };
 
-  // Check required columns.
-  if (columnIndex.name === -1) {
-    throw new Error(
-      'The NAME column was not found. Check your spreadsheet headers.'
-    );
+  for (const field of Object.keys(fallbackIndexes)) {
+    if (columnIndex[field] === -1) {
+      columnIndex[field] = fallbackIndexes[field];
+    }
   }
 
-  if (columnIndex.soGoUrl === -1) {
-    console.warn(
-      'LINK column was not found. GO/SO links will not be available.'
-    );
-  }
+  console.log("Detected spreadsheet columns:", columnIndex);
 
-  return rows.slice(1)
-
+  const records = rows.slice(1)
     .map(row => {
 
       const record = {};
 
       for (const [field, index] of Object.entries(columnIndex)) {
-
-        record[field] =
-          index >= 0
-            ? clean(row[index])
-            : "";
-
+        record[field] = clean(row[index]);
       }
 
       return record;
-
     })
-
     .filter(record => record.name)
-
     .map(record => ({
-
       rank: record.rank,
-
       name: record.name,
-
-      specificAward:
-        record.specificAward || "Unspecified Award",
-
+      specificAward: record.specificAward || "Unspecified Award",
       awardType: record.awardType,
-
       dateConferred: record.dateConferred,
-
       soGo: record.soGo,
-
       soGoUrl: record.soGoUrl,
-
       givenBy: record.givenBy,
-
       certificate: record.certificate,
-
       awardStanding: record.awardStanding
-
     }));
 
+  // Debug GO/SO links.
+  console.table(records.map(record => ({
+    employee: record.name,
+    soGo: record.soGo,
+    link: record.soGoUrl
+  })));
+
+  return records;
 }
+
 
 // ==========================================
 // HEADER NORMALIZATION
@@ -564,6 +545,7 @@ function groupAwards(rows) {
 // ==========================================
 
 
+
 function awardCard(group, index) {
 
   const records = [...group.records].sort((a, b) =>
@@ -574,18 +556,18 @@ function awardCard(group, index) {
 
     const url = safeUrl(r.soGoUrl);
 
-    // Make GO/SO value clickable when a valid URL exists.
-    const soGoDisplay = r.soGo
-      ? url
+    let soGoHTML = "";
+
+    if (r.soGo) {
+      soGoHTML = url
         ? `<a class="so-link"
              href="${escapeAttr(url)}"
              target="_blank"
-             rel="noopener noreferrer"
-             title="Open GO/SO document">
+             rel="noopener noreferrer">
              ${escapeHtml(r.soGo)}
            </a>`
-        : escapeHtml(r.soGo)
-      : "";
+        : `<span>${escapeHtml(r.soGo)}</span>`;
+    }
 
     return `
       <div class="detail-row">
@@ -596,20 +578,17 @@ function awardCard(group, index) {
           ${r.soGo ? `
             <div style="margin-top:5px">
               <span class="detail-label">GO/SO:</span>
-              ${soGoDisplay}
+              ${soGoHTML}
             </div>
           ` : ""}
 
           ${detail("Given By", r.givenBy)}
-
           ${detail("Certificate #", r.certificate)}
-
           ${detail("Award Standing", r.awardStanding)}
 
         </div>
       </div>
     `;
-
   }).join("");
 
   return `
@@ -619,9 +598,7 @@ function awardCard(group, index) {
         type="button"
         aria-expanded="${index === 0}">
 
-        <div class="award-count">
-          ${group.records.length}
-        </div>
+        <div class="award-count">${group.records.length}</div>
 
         <div class="award-title">
           <div class="award-name">
@@ -633,13 +610,12 @@ function awardCard(group, index) {
 
       </button>
 
-      <div class="award-details">
-        ${details}
-      </div>
+      <div class="award-details">${details}</div>
 
     </article>
   `;
 }
+
 
 
 // ==========================================
