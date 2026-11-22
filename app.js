@@ -104,6 +104,72 @@ async function loadDatabase() {
 
 
 // ==========================================
+// CSV PARSER
+// Handles commas, quotation marks and
+// line breaks inside spreadsheet cells.
+// ==========================================
+
+function parseCSV(csv) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let insideQuotes = false;
+
+  csv = csv.replace(/^\uFEFF/, "");
+
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+    const next = csv[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && next === '"') {
+        value += '"';
+        i++;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    }
+
+    else if (char === "," && !insideQuotes) {
+      row.push(value);
+      value = "";
+    }
+
+    else if (
+      (char === "\n" || char === "\r") &&
+      !insideQuotes
+    ) {
+      if (char === "\r" && next === "\n") {
+        i++;
+      }
+
+      row.push(value);
+
+      if (row.some(cell => cell.trim() !== "")) {
+        rows.push(row);
+      }
+
+      row = [];
+      value = "";
+    }
+
+    else {
+      value += char;
+    }
+  }
+
+  if (value.length || row.length) {
+    row.push(value);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+
+
+
+// ==========================================
 // NORMALIZE GOOGLE SHEETS DATA
 // ==========================================
 
