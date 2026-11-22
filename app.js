@@ -582,9 +582,6 @@ function awardCard(group, index) {
             </div>
           ` : ""}
 
-          ${detail("Given By", r.givenBy)}
-          ${detail("Certificate #", r.certificate)}
-          ${detail("Award Standing", r.awardStanding)}
 
         </div>
       </div>
