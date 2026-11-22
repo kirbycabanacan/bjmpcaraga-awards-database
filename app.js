@@ -563,47 +563,41 @@ function groupAwards(rows) {
 // AWARD CARDS
 // ==========================================
 
+
 function awardCard(group, index) {
 
   const records = [...group.records].sort((a, b) =>
-
     b.dateConferred.localeCompare(a.dateConferred)
-
   );
 
   const details = records.map(r => {
 
     const url = safeUrl(r.soGoUrl);
 
+    // Make GO/SO value clickable when a valid URL exists.
+    const soGoDisplay = r.soGo
+      ? url
+        ? `<a class="so-link"
+             href="${escapeAttr(url)}"
+             target="_blank"
+             rel="noopener noreferrer"
+             title="Open GO/SO document">
+             ${escapeHtml(r.soGo)}
+           </a>`
+        : escapeHtml(r.soGo)
+      : "";
+
     return `
-
       <div class="detail-row">
-
         <div class="detail-value">
 
           ${detail("Date Conferred", r.dateConferred)}
 
           ${r.soGo ? `
-
             <div style="margin-top:5px">
-
-              GO/SO:
-
-              ${url
-
-                ? `<a class="so-link"
-                    href="${escapeAttr(url)}"
-                    target="_blank"
-                    rel="noopener noreferrer">
-                    ${escapeHtml(r.soGo)}
-                   </a>`
-
-                : escapeHtml(r.soGo)
-
-              }
-
+              <span class="detail-label">GO/SO:</span>
+              ${soGoDisplay}
             </div>
-
           ` : ""}
 
           ${detail("Given By", r.givenBy)}
@@ -613,13 +607,12 @@ function awardCard(group, index) {
           ${detail("Award Standing", r.awardStanding)}
 
         </div>
-
-      </div>`;
+      </div>
+    `;
 
   }).join("");
 
   return `
-
     <article class="award-card ${index === 0 ? "open" : ""}">
 
       <button class="award-toggle"
@@ -631,11 +624,9 @@ function awardCard(group, index) {
         </div>
 
         <div class="award-title">
-
           <div class="award-name">
             ${escapeHtml(group.name)}
           </div>
-
         </div>
 
         <div class="chevron">⌄</div>
@@ -646,9 +637,10 @@ function awardCard(group, index) {
         ${details}
       </div>
 
-    </article>`;
-
+    </article>
+  `;
 }
+
 
 // ==========================================
 // DETAIL DISPLAY
@@ -676,30 +668,38 @@ function detail(label, value) {
 // URL VALIDATION
 // ==========================================
 
+
 function safeUrl(value) {
+
+  if (!value) return "";
 
   try {
 
-    const url = new URL(value);
+    let cleanedUrl = String(value).trim();
+
+    // Add HTTPS if the URL has no protocol.
+    if (!/^https?:\/\//i.test(cleanedUrl)) {
+      cleanedUrl = "https://" + cleanedUrl;
+    }
+
+    const url = new URL(cleanedUrl);
 
     if (
       url.protocol === "https:" ||
       url.protocol === "http:"
     ) {
-
       return url.href;
-
     }
 
   } catch (err) {
 
-    return "";
+    console.warn("Invalid GO/SO URL:", value);
 
   }
 
   return "";
-
 }
+
 
 // ==========================================
 // KEYBOARD CONTROLS
